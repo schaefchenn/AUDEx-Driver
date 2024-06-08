@@ -34,4 +34,6 @@ void loop() {
   delay(1000); // Add a delay between cycles (optional)
   // ich mache hier änderungen lol
   int i;
+  // ich ändere mehr stuff lol
+  
 }
