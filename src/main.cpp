@@ -23,7 +23,6 @@ float throttleValue = 0;
 void setup() {
   Serial.begin(115200); // Attach the servo after it has been detached
 
-  Serial.begin(115200);
   Serial.println("Starting NimBLE Client");
   xboxController.begin();
   pinMode(ledPin, OUTPUT);
