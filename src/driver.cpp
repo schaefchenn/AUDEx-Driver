@@ -1,4 +1,4 @@
-#include "driver.h"
+#include "driver.h" // comment
 #include <Arduino.h>
 
 driver::driver() {
@@ -60,7 +60,7 @@ void driver::XBOXdriving() {
             float gas = (float)xboxController.xboxNotif.trigRT;
             float brake = (float)xboxController.xboxNotif.trigLT;
             throttleValue = map(gas - brake,-1023,1023,1000,2000);
-            absimaMotor.write(throttleValue);
+            absimaMotor.writeMicroseconds(throttleValue);
           
             Serial.print("throttle value: ");
             Serial.print(throttleValue);

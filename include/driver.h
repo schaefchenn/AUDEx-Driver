@@ -10,8 +10,9 @@ class driver {
 
     void setup();
     void XBOXdriving();
+    void parkassistant();
 
-  private:
+  private: // hier alle konstanten Variablen 
     XboxSeriesXControllerESP32_asukiaaa::Core xboxController;
 
     Servo absimaServo;
