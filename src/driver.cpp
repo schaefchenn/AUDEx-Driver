@@ -1,5 +1,7 @@
 #include "driver.h" // Include the driver header file
 #include <Arduino.h> // Include the Arduino library
+#include <CAN.h>
+#include <display.h>
 
 // Constructor for the driver class
 driver::driver() {
@@ -28,8 +30,36 @@ void driver::setup() {
     absimaMotor.writeMicroseconds(1500); // Neutral position for the motor
     Serial.println("Motor Ready");
 
+
+    // Set CAN the pins
+    CAN.setPins (RX_GPIO_NUM, TX_GPIO_NUM);
+
+    // start the CAN bus at 1Mbps
+    if (!CAN.begin (1E6)) {
+        Serial.println ("Starting CAN failed!");
+        while (1);
+    } else {
+        Serial.println ("CAN Receiver Ready");
+    }
+
     // Wait 10 seconds to allow for setup completion
-    delay(10000);
+    delay(8000);
+
+    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+    if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+        Serial.println(F("SSD1306 allocation failed"));
+        for(;;); // Don't proceed, loop forever
+    }
+
+    Serial.println ("Display Ready");
+
+    // Show initial display buffer contents on the screen --
+    // the library initializes this with an Adafruit splash screen.
+    display.display();
+    delay(2000); // Pause for 2 seconds
+    
+    // Clear the buffer
+    display.clearDisplay();
     Serial.println("Setup done");
 }
 
@@ -59,6 +89,9 @@ void driver::XBOXdriving() {
                 Serial.println("Address: " + xboxController.buildDeviceAddressStr()); // Print controller address
                 Serial.println("battery " + String(xboxController.battery) + "%"); // Print battery status
                 flag += 1;
+
+                // Draw XBOX onto the display
+                drawXBOX();
             }
             
             // Read and map joystick horizontal value to steering angle
@@ -76,6 +109,8 @@ void driver::XBOXdriving() {
             float brake = (float)xboxController.xboxNotif.trigLT;
             throttleValue = map(gas - brake, -1023, 1023, 1000, 2000); // Map throttle value
             absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
+
+            drawValues(throttleValue, steeringAngle);
             
             // Print throttle and steering values
             Serial.print("throttle value: ");
@@ -96,4 +131,42 @@ void driver::XBOXdriving() {
             flag = 0;
         }
     }
+}
+
+void driver::CANdriving() {
+  // try to parse packet
+  int packetSize = CAN.parsePacket();
+
+  if (packetSize) {
+    // received a packet
+    Serial.print ("Received ");
+
+    if (CAN.packetExtended()) {
+      Serial.print ("extended ");
+    }
+
+    if (CAN.packetRtr()) {
+      // Remote transmission request, packet contains no data
+      Serial.print ("RTR ");
+    }
+
+    Serial.print ("packet with id 0x");
+    Serial.print (CAN.packetId(), HEX);
+
+    if (CAN.packetRtr()) {
+      Serial.print (" and requested length ");
+      Serial.println (CAN.packetDlc());
+    } else {
+      Serial.print (" and length ");
+      Serial.println (packetSize);
+
+      // only print packet data for non-RTR packets
+      while (CAN.available()) {
+        Serial.print ((char) CAN.read());
+      }
+      Serial.println();
+    }
+
+    Serial.println();
+  }
 }

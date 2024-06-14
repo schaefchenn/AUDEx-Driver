@@ -12,7 +12,7 @@ class driver {
 
     void setup(); // Setup function to initialize the driver
     void XBOXdriving(); // Function to handle XBOX controller driving
-    void parkassistant(); // Function for park assistant feature
+    void CANdriving(); // Function for park assistant feature
 
   private: // Private members - constants and variables
     XboxSeriesXControllerESP32_asukiaaa::Core xboxController; // Xbox controller object
