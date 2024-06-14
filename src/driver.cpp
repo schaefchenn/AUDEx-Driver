@@ -125,8 +125,7 @@ XBOX driver::getXboxData() {
     }
 }
 
-CANBUS driver::getCanData() {
-
+CANBUS getCanData() {
   CANBUS data; // Create an instance of the struct to hold the return values
 
   // try to parse packet
@@ -134,37 +133,24 @@ CANBUS driver::getCanData() {
 
   if (packetSize) {
     // received a packet
-    Serial.print ("Received ");
+    data.extended = CAN.packetExtended();
+    data.rtr = CAN.packetRtr();
+    data.id = CAN.packetId();
+    data.length = CAN.packetDlc();
 
-    if (CAN.packetExtended()) {
-      Serial.print ("extended ");
+    // Read packet data into the struct
+    for (int i = 0; i < packetSize; i++) {
+      data.data[i] = CAN.read();
     }
 
-    if (CAN.packetRtr()) {
-      // Remote transmission request, packet contains no data
-      Serial.print ("RTR ");
-    }
-
-    Serial.print ("packet with id 0x");
-    Serial.print (CAN.packetId(), HEX);
-
-    if (CAN.packetRtr()) {
-      Serial.print (" and requested length ");
-      Serial.println (CAN.packetDlc());
-    } else {
-      Serial.print (" and length ");
-      Serial.println (packetSize);
-
-      // only print packet data for non-RTR packets
-      while (CAN.available()) {
-        Serial.print ((char) CAN.read());
-        return data;
-      }
-      Serial.println();
-    }
-
-    Serial.println();
+    // Extract drive mode, throttle value, and steering angle from data array
+    // Modify this according to your actual CAN message format
+    data.driveMode = data.data[0]; // Example: Assuming drive mode is first byte of data array
+    memcpy(&data.throttleValue, &data.data[1], sizeof(float)); // Assuming throttle value starts at index 1
+    memcpy(&data.steeringAngle, &data.data[5], sizeof(float)); // Assuming steering angle starts at index 5
   }
+
+  return data;
 }
 
 void driver::driving(int driveMode){
