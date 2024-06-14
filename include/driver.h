@@ -5,14 +5,25 @@
 #include <XboxSeriesXControllerESP32_asukiaaa.hpp> // Xbox controller library for ESP32
 #include <ESP32Servo.h> // Servo library for ESP32
 
+struct XBOX {
+    float throttleValue;
+    float steeringAngle;
+};
+
+struct CANBUS {
+    float throttleValue;
+    float steeringAngle;
+};
+
 // Define the driver class
 class driver {
   public:
     driver();  // Constructor
 
     void setup(); // Setup function to initialize the driver
-    void XBOXdriving(); // Function to handle XBOX controller driving
-    void CANdriving(); // Function for park assistant feature
+    XBOX getXboxData(); // Function to handle XBOX controller driving
+    CANBUS getCanData(); // Function for park assistant feature
+    void driving(int driveMode);
 
   private: // Private members - constants and variables
     XboxSeriesXControllerESP32_asukiaaa::Core xboxController; // Xbox controller object
@@ -37,6 +48,9 @@ class driver {
     int throttleValue = 0; // Initial throttle value
 
     void demoVibration(); // Private function to demonstrate controller vibration
+
+  public:
+    int driveMode;
 };
 
 #endif

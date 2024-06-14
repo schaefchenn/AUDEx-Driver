@@ -77,8 +77,9 @@ void driver::demoVibration() {
 }
 
 // Function to handle XBOX driving inputs
-void driver::XBOXdriving() {
+XBOX driver::getXboxData() {
     xboxController.onLoop(); // Process controller loop
+    XBOX data; // Create an instance of the struct to hold the return values
     if (xboxController.isConnected()) { // Check if controller is connected
         if (xboxController.isWaitingForFirstNotification()) {
             Serial.println("waiting for first notification");
@@ -96,27 +97,14 @@ void driver::XBOXdriving() {
             
             // Read and map joystick horizontal value to steering angle
             joyLHoriValue = (float)xboxController.xboxNotif.joyLHori;
-            steeringAngle = map(joyLHoriValue, 0, 65535, 0 + steeringOffset, 180 - steeringOffset);
-            
-            // Center steering angle if within tolerance
-            if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
-                steeringAngle = centerSteeringAngle;
-            }
-            absimaServo.write(steeringAngle); // Set servo to steering angle
+            data.steeringAngle = map(joyLHoriValue, 0, 65535, 0 + steeringOffset, 180 - steeringOffset);
 
             // Read and map trigger values to throttle value
             float gas = (float)xboxController.xboxNotif.trigRT;
             float brake = (float)xboxController.xboxNotif.trigLT;
-            throttleValue = map(gas - brake, -1023, 1023, 1000, 2000); // Map throttle value
-            absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
+            data.throttleValue = map(gas - brake, -1023, 1023, 1000, 2000); // Map throttle value
 
-            drawValues(throttleValue, steeringAngle);
-            
-            // Print throttle and steering values
-            Serial.print("throttle value: ");
-            Serial.print(throttleValue);
-            Serial.print("\t\tsteering angle: ");
-            Serial.println(steeringAngle);
+            return data;
         }
     } else {
         // Restart ESP if connection failed multiple times
@@ -130,10 +118,17 @@ void driver::XBOXdriving() {
             Serial.println("not connected");
             flag = 0;
         }
+
+        data.steeringAngle = 90;
+        data.throttleValue = 1500; // Map throttle value
+        return data;
     }
 }
 
-void driver::CANdriving() {
+CANBUS driver::getCanData() {
+
+  CANBUS data; // Create an instance of the struct to hold the return values
+
   // try to parse packet
   int packetSize = CAN.parsePacket();
 
@@ -163,10 +158,32 @@ void driver::CANdriving() {
       // only print packet data for non-RTR packets
       while (CAN.available()) {
         Serial.print ((char) CAN.read());
+        return data;
       }
       Serial.println();
     }
 
     Serial.println();
+  }
+}
+
+void driver::driving(int driveMode){
+  
+  if (driveMode == 1){
+    // Call the getXBOXdata function
+    XBOX xboxData = getXboxData();
+
+    // Access the returned throttleValue and steeringAngle
+    float throttleValue = xboxData.throttleValue;
+    float steeringAngle = xboxData.steeringAngle;
+    
+    // Center steering angle if within tolerance
+    if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
+      steeringAngle = centerSteeringAngle;
+    }
+    
+    absimaServo.write(steeringAngle); // Set servo to steering angle
+    absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
+    drawValues(throttleValue, steeringAngle);
   }
 }
