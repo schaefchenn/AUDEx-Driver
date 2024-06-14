@@ -125,31 +125,43 @@ XBOX driver::getXboxData() {
     }
 }
 
-CANBUS getCanData() {
-  CANBUS data; // Create an instance of the struct to hold the return values
+CANBUS driver::getCanData()
+{
+    CANBUS data; // Create an instance of the struct to hold the return values
+    
+    // try to parse packet
+    int packetSize = CAN.parsePacket();
+    
+    if (packetSize) {
+      // received a packet
+      data.extended = CAN.packetExtended();
+      data.rtr = CAN.packetRtr();
+      data.id = CAN.packetId();
+      data.length = CAN.packetDlc();
+      
+      Serial.print("\n");
+      Serial.print("CAN id: ");
+      Serial.print(data.id);
+      
+      // Read packet data into the struct
+      for (int i = 0; i < packetSize; i++) {
+        data.data[i] = CAN.read();
+      }
+      
+      // Extract drive mode, throttle value, and steering angle from data array
+      // Modify this according to your actual CAN message format
+      data.driveMode = data.data[0]; // Example: Assuming drive mode is first byte of data array
+      
+      Serial.print("\t\tDrive Mode: ");
+      Serial.print(data.driveMode);
+      
+      memcpy(&data.throttleValue, &data.data[1], sizeof(float)); // Assuming throttle value starts at index 1
+      memcpy(&data.steeringAngle, &data.data[5], sizeof(float)); // Assuming steering angle starts at index 5
 
-  // try to parse packet
-  int packetSize = CAN.parsePacket();
-
-  if (packetSize) {
-    // received a packet
-    data.extended = CAN.packetExtended();
-    data.rtr = CAN.packetRtr();
-    data.id = CAN.packetId();
-    data.length = CAN.packetDlc();
-
-    // Read packet data into the struct
-    for (int i = 0; i < packetSize; i++) {
-      data.data[i] = CAN.read();
-    }
-
-    // Extract drive mode, throttle value, and steering angle from data array
-    // Modify this according to your actual CAN message format
-    data.driveMode = data.data[0]; // Example: Assuming drive mode is first byte of data array
-    memcpy(&data.throttleValue, &data.data[1], sizeof(float)); // Assuming throttle value starts at index 1
-    memcpy(&data.steeringAngle, &data.data[5], sizeof(float)); // Assuming steering angle starts at index 5
+      Serial.print("\t\tThrottle: ");
+      Serial.print(data.throttleValue);
   }
-
+  
   return data;
 }
 
@@ -171,5 +183,9 @@ void driver::driving(int driveMode){
     absimaServo.write(steeringAngle); // Set servo to steering angle
     absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
     drawValues(throttleValue, steeringAngle);
+
+  } else if (driveMode == 2){
+    CANBUS canData = getCanData();
+    //Serial.println(canData.driveMode);
   }
 }

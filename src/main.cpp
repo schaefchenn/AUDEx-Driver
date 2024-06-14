@@ -10,7 +10,7 @@ void setup() {
 
     // Call the setup function of the driver instance
     AUDEx.setup();
-    AUDEx.driveMode = 1; // 1 is for driving with the XBOX Series X Controller
+    AUDEx.driveMode = 2; // 1 is for driving with the XBOX Series X Controller
 }
 
 void loop() {
