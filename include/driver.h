@@ -11,16 +11,14 @@ struct XBOX {
 };
 
 struct CANBUS {
-  bool extended;
-  bool rtr;
-  uint32_t id;
-  uint8_t length;
-  uint8_t data[8]; // Assuming maximum data length of 8 bytes
-
-  // Additional fields for drive mode, throttle value, and steering angle
-  uint8_t driveMode;
-  float throttleValue;
-  float steeringAngle;
+    bool extended;
+    bool rtr;
+    uint32_t id;
+    uint8_t length;
+    uint8_t data[8];  // Assuming maximum data length is 8 bytes
+    uint8_t driveMode;
+    uint8_t throttleValue;
+    uint8_t steeringAngle;
 };
 
 // Define the driver class
