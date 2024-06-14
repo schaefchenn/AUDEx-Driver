@@ -20,6 +20,9 @@ class driver {
     Servo absimaServo; // Servo object for steering
     Servo absimaMotor; // Servo object for motor control
 
+    const int TX_GPIO_NUM   17;  // Connects to CTX
+    const int RX_GPIO_NUM   16;  // Connects to CRX
+
     const int ledPin = 2; // Pin for built-in LED
     const int steeringPin = 25; // Pin for steering servo
     const int motorPin = 26; // Pin for motor servo
