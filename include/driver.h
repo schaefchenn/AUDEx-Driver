@@ -8,6 +8,7 @@
 struct XBOX {
     float throttleValue;
     float steeringAngle;
+    bool isConnected = false;
 };
 
 struct CANBUS {
@@ -54,11 +55,14 @@ class driver {
     int throttleValue = 0; // Initial throttle value
 
     void demoVibration(); // Private function to demonstrate controller vibration
+    void sendCanData(bool driverReady);
 
   public:
     int driveMode;
     int CANthrottleValue;
     int CANsteerignAngle;
+
+    bool driverReady = false;
 };
 
 #endif

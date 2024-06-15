@@ -91,8 +91,9 @@ XBOX driver::getXboxData() {
                 Serial.println("battery " + String(xboxController.battery) + "%"); // Print battery status
                 flag += 1;
 
-                // Draw XBOX onto the display
-                //drawXBOX();
+                data.isConnected = true;
+                driverReady = true;
+                sendCanData(driverReady);
             }
             
             // Read and map joystick horizontal value to steering angle
@@ -104,10 +105,13 @@ XBOX driver::getXboxData() {
             float brake = (float)xboxController.xboxNotif.trigLT;
             data.throttleValue = map(gas - brake, -1023, 1023, 1000, 2000); // Map throttle value
 
+            data.isConnected = true;
+
             return data;
         }
     } else {
         drawXBOXsearching();
+        data.isConnected = false;
         //delay(1000);
         // Restart ESP if connection failed multiple times
         if (xboxController.getCountFailedConnection() > 2) {
@@ -155,6 +159,12 @@ CANBUS driver::getCanData() {
     return data;
 }
 
+void driver::sendCanData(bool driverReady){
+    CAN.beginPacket(0x11);
+    CAN.write((uint8_t*)driverReady, sizeof(driverReady));
+    CAN.endPacket();
+}
+
 void driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
     switch (driveMode) {
         case 1: {
@@ -171,7 +181,10 @@ void driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) 
 
             absimaServo.write(steeringAngle); // Set servo to steering angle
             absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
-            drawXBOXValues(throttleValue, steeringAngle);
+
+            if (xboxData.isConnected){
+                drawXBOXValues(throttleValue, steeringAngle);
+            }
 
             Serial.print("\n Driving with XBOX");
             Serial.print("\t Throttle: ");
@@ -206,7 +219,7 @@ void driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) 
             break;
         }
         default:
-            Serial.print("\n Unknown drive mode");
+            //Serial.print("\n Unknown drive mode");
             break;
     }
 }
