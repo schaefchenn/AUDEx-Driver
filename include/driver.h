@@ -6,10 +6,25 @@
 #include <ESP32Servo.h> // Servo library for ESP32
 
 struct XBOX {
-    float throttleValue;
+    bool isConnected;
     float steeringAngle;
-    bool isConnected = false;
+    float throttleValue;
+    bool buttonA;
+    bool buttonB;
+    bool buttonX;
+    bool buttonY;
+    bool buttonLB;
+    bool buttonRB;
+    bool buttonStart;
+    bool buttonSelect;
+    bool buttonLStick;
+    bool buttonRStick;
+    bool buttonCrossUP;
+    bool buttonCrossDOWN;
+    bool buttonCrossLEFT;
+    bool buttonCrossRIGHT;
 };
+
 
 struct CANBUS {
     bool extended;
@@ -20,6 +35,7 @@ struct CANBUS {
     uint8_t driveMode;
     uint8_t throttleValue;
     uint8_t steeringAngle;
+    uint8_t acknowledged;
 };
 
 struct CanMessage {
@@ -35,7 +51,7 @@ class driver {
     XBOX getXboxData(); // Function to handle XBOX controller driving
     CANBUS getCanData(); // Function for park assistant feature
     void sendCanData(int driverReady);
-    void driving(int driveMode, int CANthrottleValue, int CANsteerignAngle);
+    int driving(int driveMode, int CANthrottleValue, int CANsteerignAngle);
     
 
 
@@ -60,6 +76,8 @@ class driver {
     float joyLHoriValue = 65535/2; // Initial value for joystick horizontal position
     float steeringAngle = 90; // Initial steering angle
     int throttleValue = 0; // Initial throttle value
+    int throttleLimit = 1600;
+    int debounceDelay = 100;
 
     void demoVibration(); // Private function to demonstrate controller vibration
 

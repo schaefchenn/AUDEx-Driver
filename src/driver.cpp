@@ -39,11 +39,8 @@ void driver::setup() {
         Serial.println ("Starting CAN failed!");
         while (1);
     } else {
-        Serial.println ("CAN Receiver Ready");
+        Serial.println ("CAN Ready");
     }
-
-    // Wait 10 seconds to allow for setup completion
-    delay(8000);
 
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
@@ -57,6 +54,10 @@ void driver::setup() {
     // the library initializes this with an Adafruit splash screen.
     display.display();
     delay(2000); // Pause for 2 seconds
+    drawPorscheLogo();
+    delay(4000); // Pause for 2 seconds
+    drawCat();
+    delay(4000);
     
     // Clear the buffer
     display.clearDisplay();
@@ -76,7 +77,6 @@ void driver::demoVibration() {
     xboxController.writeHIDReport(repo); // Send vibration report to controller
 }
 
-// Function to handle XBOX driving inputs
 XBOX driver::getXboxData() {
     xboxController.onLoop(); // Process controller loop
     XBOX data; // Create an instance of the struct to hold the return values
@@ -95,7 +95,7 @@ XBOX driver::getXboxData() {
                 driverReady = true;
                 //sendCanData(driverReady);
             }
-            
+
             // Read and map joystick horizontal value to steering angle
             joyLHoriValue = (float)xboxController.xboxNotif.joyLHori;
             data.steeringAngle = map(joyLHoriValue, 0, 65535, 0 + steeringOffset, 180 - steeringOffset);
@@ -104,6 +104,22 @@ XBOX driver::getXboxData() {
             float gas = (float)xboxController.xboxNotif.trigRT;
             float brake = (float)xboxController.xboxNotif.trigLT;
             data.throttleValue = map(gas - brake, -1023, 1023, 1000, 2000); // Map throttle value
+
+            // Read button states
+            data.buttonA = xboxController.xboxNotif.btnA;
+            data.buttonB = xboxController.xboxNotif.btnB;
+            data.buttonX = xboxController.xboxNotif.btnX;
+            data.buttonY = xboxController.xboxNotif.btnY;
+            data.buttonLB = xboxController.xboxNotif.btnLB;
+            data.buttonRB = xboxController.xboxNotif.btnRB;
+            data.buttonStart = xboxController.xboxNotif.btnStart;
+            data.buttonSelect = xboxController.xboxNotif.btnSelect;
+            data.buttonLStick = xboxController.xboxNotif.btnLS;
+            data.buttonRStick = xboxController.xboxNotif.btnRS;
+            data.buttonCrossUP = xboxController.xboxNotif.btnRS;
+            data.buttonCrossDOWN = xboxController.xboxNotif.btnRS;
+            data.buttonCrossLEFT = xboxController.xboxNotif.btnRS;
+            data.buttonCrossRIGHT = xboxController.xboxNotif.btnRS;
 
             data.isConnected = true;
 
@@ -115,7 +131,7 @@ XBOX driver::getXboxData() {
         driverReady = false;
         //delay(1000);
         // Restart ESP if connection failed multiple times
-        if (xboxController.getCountFailedConnection() > 2) {
+        if (xboxController.getCountFailedConnection() > 3) {
             ESP.restart();
         }
 
@@ -131,6 +147,7 @@ XBOX driver::getXboxData() {
         return data;
     }
 }
+
 
 CANBUS driver::getCanData() {
     CANBUS data;  // Create an instance of the struct to hold the return values
@@ -153,6 +170,7 @@ CANBUS driver::getCanData() {
         data.driveMode = data.data[0];  // Drive mode is the first byte
         data.throttleValue = data.data[1];  // Drive mode is the first byte
         data.steeringAngle = data.data[2];  // Steering angle is the third byte
+        data.acknowledged = data.data[3];  // Steering angle is the third byte
     } else {
     
     }
@@ -170,25 +188,32 @@ void driver::sendCanData(int driverReady){
     Serial.print("Send CAN message");
 }
 
-void driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
+int driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
     switch (driveMode) {
         case 1: {
             // Call the getXboxData function
             XBOX xboxData = getXboxData();
-            // Access the returned throttleValue and steeringAngle
-            float throttleValue = xboxData.throttleValue;
-            float steeringAngle = xboxData.steeringAngle;
-
-            // Center steering angle if within tolerance
-            if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
-                steeringAngle = centerSteeringAngle;
-            }
-
-            absimaServo.write(steeringAngle); // Set servo to steering angle
-            absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
-
+         
             if (xboxData.isConnected){
+
+                // Access the returned throttleValue and steeringAngle
+                float throttleValue = xboxData.throttleValue;
+                float steeringAngle = xboxData.steeringAngle;
+
+                // Center steering angle if within tolerance
+                if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
+                    steeringAngle = centerSteeringAngle;
+                }
+
+                absimaServo.write(steeringAngle); // Set servo to steering angle
+                absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
                 drawXBOXValues(throttleValue, steeringAngle);
+
+                absimaServo.write(steeringAngle); // Set servo to steering angle
+                absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
+
+                if (xboxData.buttonSelect == 1){driveMode = 3; delay(debounceDelay); }//delay for debounce
+                return driveMode;
             }
 
             //Serial.print("\n Driving with XBOX");
@@ -196,6 +221,15 @@ void driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) 
             //Serial.print(throttleValue);
             //Serial.print("\t Steering: ");
             //Serial.print(steeringAngle);
+            //Serial.print("\t Button A pressed: ");
+            //Serial.print(xboxData.buttonA);
+            //Serial.print("\t Button B pressed: ");
+            //Serial.print(xboxData.buttonB);
+            //Serial.print("\t Button Select pressed: ");
+            //Serial.print(xboxData.buttonSelect);
+            //Serial.print("\t Drive Mode: ");
+            //Serial.print(driveMode);
+
 
             break;
         }
@@ -223,8 +257,65 @@ void driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) 
 
             break;
         }
+        case 3:{
+            XBOX xboxData = getXboxData();
+            if (xboxData.isConnected){
+
+                if (xboxData.buttonA == 1 && throttleLimit < 2000){
+                    throttleLimit += 100;
+                    delay(debounceDelay); //debounce
+                }
+
+                if (xboxData.buttonX == 1 && throttleLimit >= 1500){
+                    throttleLimit -= 100;
+                    delay(debounceDelay); 
+                }
+
+
+                // Access the returned throttleValue and steeringAngle
+                float throttleValue = xboxData.throttleValue;
+                if(throttleValue > throttleLimit && throttleLimit != 1400){
+                    throttleValue = throttleLimit;
+                } else if (throttleValue < 1500 && throttleLimit != 1400){
+                    throttleValue = 1500;
+                } else if (throttleLimit == 1400){
+                    if (throttleValue > 1500){
+                        throttleValue = 1500;
+                    }
+                }
+               
+                
+                float steeringAngle = xboxData.steeringAngle;
+                // Center steering angle if within tolerance
+                if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
+                    steeringAngle = centerSteeringAngle;
+                }
+
+                absimaServo.write(steeringAngle); // Set servo to steering angle
+                absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
+
+                absimaServo.write(steeringAngle); // Set servo to steering angle
+                absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
+
+                if (xboxData.buttonSelect == 1){driveMode = 1; delay(debounceDelay);} //debounce
+
+                drawXBOXPitLimit(throttleValue, steeringAngle, throttleLimit );
+
+                Serial.print("\n Driving with XBOX Limiter");
+                Serial.print("\t Throttle: ");
+                Serial.print(throttleValue);
+                Serial.print("\t Throttle Limit: ");
+                Serial.print(throttleLimit);
+            }
+            
+            break;
+            
+        }
+
         default:
             //Serial.print("\n Unknown drive mode");
             break;
     }
+
+    return driveMode;
 }
