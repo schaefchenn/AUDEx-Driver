@@ -263,11 +263,13 @@ int driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
 
                 if (xboxData.buttonA == 1 && throttleLimit < 2000){
                     throttleLimit += 100;
+                    gear += 1;
                     delay(debounceDelay); //debounce
                 }
 
                 if (xboxData.buttonX == 1 && throttleLimit >= 1500){
                     throttleLimit -= 100;
+                    gear -= 1;
                     delay(debounceDelay); 
                 }
 
@@ -306,6 +308,8 @@ int driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
                 Serial.print(throttleValue);
                 Serial.print("\t Throttle Limit: ");
                 Serial.print(throttleLimit);
+                Serial.print("\t Gear: ");
+                Serial.print(gear);
             }
             
             break;

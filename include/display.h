@@ -526,25 +526,37 @@ void drawXBOXPitLimit(int throttleValue, int steeringAngle, int throttleLimit ) 
 
   int throttle = map(throttleValue, 1000, 2000, -100, 100);
   int throttleGear = map(throttleLimit, 1600, 2000,1, 5);
+ 
   String throttleString = String(throttle);
   String steeringString = String(steeringAngle);
-  String throttleGearString = String(throttleGear);
+
+  if (throttleGear == 0){
+    String throttleGearString = "N";
+  } else if (throttleGear == -1){
+    String throttleGearStrin = "R";
+  }else {
+    String throttleGearString = String(throttleGear);
+  }
   
   throttleString = "Throttle: " + throttleString + " %";
   steeringString = "Steering: " + steeringString + " deg";
-  throttleGearString = "Gear: " + throttleGearString;
+  String throttleGearString = "Gear: " + throttleGearString;
 
   display.drawBitmap(0,0, epd_bitmap_xbox_PNG17528_small, 16, 16, WHITE);
 
   display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);        // Draw white text
   display.setCursor(20,0); 
-  display.println(F("XBOX Pit limit"));
+  display.println(F("XBOX"));
+
+  display.setTextSize(1);
+  display.print("Pit Limit");
 
   display.setTextSize(1.8);             // Normal 1:1 pixel scale
   display.setCursor(0,25); 
   display.println(steeringString);
   display.println(throttleString);
+  display.println(throttleGearString);
 
   display.display();
 }

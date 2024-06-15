@@ -76,7 +76,8 @@ class driver {
     float joyLHoriValue = 65535/2; // Initial value for joystick horizontal position
     float steeringAngle = 90; // Initial steering angle
     int throttleValue = 0; // Initial throttle value
-    int throttleLimit = 1600;
+    int throttleLimit = 1500;
+    int gear = 0;
     int debounceDelay = 100;
 
     void demoVibration(); // Private function to demonstrate controller vibration
