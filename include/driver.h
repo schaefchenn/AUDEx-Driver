@@ -22,6 +22,10 @@ struct CANBUS {
     uint8_t steeringAngle;
 };
 
+struct CanMessage {
+  uint8_t driverReady;
+};
+
 // Define the driver class
 class driver {
   public:
@@ -30,7 +34,10 @@ class driver {
     void setup(); // Setup function to initialize the driver
     XBOX getXboxData(); // Function to handle XBOX controller driving
     CANBUS getCanData(); // Function for park assistant feature
+    void sendCanData(int driverReady);
     void driving(int driveMode, int CANthrottleValue, int CANsteerignAngle);
+    
+
 
   private: // Private members - constants and variables
     XboxSeriesXControllerESP32_asukiaaa::Core xboxController; // Xbox controller object
@@ -55,14 +62,13 @@ class driver {
     int throttleValue = 0; // Initial throttle value
 
     void demoVibration(); // Private function to demonstrate controller vibration
-    void sendCanData(bool driverReady);
 
   public:
     int driveMode;
     int CANthrottleValue;
     int CANsteerignAngle;
 
-    bool driverReady = false;
+    int driverReady = 0;
 };
 
 #endif

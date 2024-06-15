@@ -93,7 +93,7 @@ XBOX driver::getXboxData() {
 
                 data.isConnected = true;
                 driverReady = true;
-                sendCanData(driverReady);
+                //sendCanData(driverReady);
             }
             
             // Read and map joystick horizontal value to steering angle
@@ -112,6 +112,7 @@ XBOX driver::getXboxData() {
     } else {
         drawXBOXsearching();
         data.isConnected = false;
+        driverReady = false;
         //delay(1000);
         // Restart ESP if connection failed multiple times
         if (xboxController.getCountFailedConnection() > 2) {
@@ -159,10 +160,14 @@ CANBUS driver::getCanData() {
     return data;
 }
 
-void driver::sendCanData(bool driverReady){
+void driver::sendCanData(int driverReady){
+    CanMessage msg;
+    msg.driverReady = driverReady;
+
     CAN.beginPacket(0x11);
-    CAN.write((uint8_t*)driverReady, sizeof(driverReady));
+    CAN.write((uint8_t*)&msg, sizeof(msg));
     CAN.endPacket();
+    Serial.print("Send CAN message");
 }
 
 void driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
@@ -186,11 +191,11 @@ void driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) 
                 drawXBOXValues(throttleValue, steeringAngle);
             }
 
-            Serial.print("\n Driving with XBOX");
-            Serial.print("\t Throttle: ");
-            Serial.print(throttleValue);
-            Serial.print("\t Steering: ");
-            Serial.print(steeringAngle);
+            //Serial.print("\n Driving with XBOX");
+            //Serial.print("\t Throttle: ");
+            //Serial.print(throttleValue);
+            //Serial.print("\t Steering: ");
+            //Serial.print(steeringAngle);
 
             break;
         }
@@ -208,13 +213,13 @@ void driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) 
             absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
             drawCANValues(throttleValue, steeringAngle);
 
-            Serial.print("\n Driving with CAN");
-            Serial.print("\t Mode: ");
-            Serial.print(driveMode);
-            Serial.print("\t Throttle: ");
-            Serial.print(throttleValue);
-            Serial.print("\t Steering: ");
-            Serial.print(steeringAngle);
+            //Serial.print("\n Driving with CAN");
+            //Serial.print("\t Mode: ");
+            //Serial.print(driveMode);
+            //Serial.print("\t Throttle: ");
+            //Serial.print(throttleValue);
+            //Serial.print("\t Steering: ");
+            //Serial.print(steeringAngle);
 
             break;
         }
