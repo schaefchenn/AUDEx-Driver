@@ -153,40 +153,60 @@ CANBUS driver::getCanData() {
     return data;
 }
 
-void driver::driving(int driveMode){
-  
-  if (driveMode == 1){
-    // Call the getXBOXdata function
-    XBOX xboxData = getXboxData();
+void driver::driving(int driveMode) {
+    switch (driveMode) {
+        case 1: {
+            // Call the getXboxData function
+            XBOX xboxData = getXboxData();
+            // Access the returned throttleValue and steeringAngle
+            float throttleValue = xboxData.throttleValue;
+            float steeringAngle = xboxData.steeringAngle;
 
-    // Access the returned throttleValue and steeringAngle
-    float throttleValue = xboxData.throttleValue;
-    float steeringAngle = xboxData.steeringAngle;
-    
-    // Center steering angle if within tolerance
-    if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
-      steeringAngle = centerSteeringAngle;
+            // Center steering angle if within tolerance
+            if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
+                steeringAngle = centerSteeringAngle;
+            }
+
+            absimaServo.write(steeringAngle); // Set servo to steering angle
+            absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
+            drawValues(throttleValue, steeringAngle);
+
+            //Serial.print("\n Driving with XBOX");
+            //Serial.print("\t Throttle: ");
+            //Serial.print(throttleValue);
+            //Serial.print("\t Steering: ");
+            //Serial.print(steeringAngle);
+
+            break;
+        }
+        case 2: {
+            CANBUS canData = getCanData();
+            
+            // Access the returned throttleValue and steeringAngle
+            uint8_t CANthrottleValue = map(canData.throttleValue, 100, 200, 1000, 2000);
+            uint8_t CANsteeringAngle = canData.steeringAngle;
+
+            // Center steering angle if within tolerance
+            if (abs(CANsteeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
+                CANsteeringAngle = centerSteeringAngle;
+            }
+
+            absimaServo.write(CANsteeringAngle); // Set servo to steering angle
+            absimaMotor.writeMicroseconds(CANthrottleValue); // Set motor throttle
+            drawValues(CANthrottleValue, CANsteeringAngle);
+
+            //Serial.print("\n Driving with CAN");
+            //Serial.print("\t Mode: ");
+            //Serial.print(canData.driveMode);
+            //Serial.print("\t Throttle: ");
+            //Serial.print(CANthrottleValue);
+            //Serial.print("\t Steering: ");
+            //Serial.print(CANsteeringAngle);
+
+            break;
+        }
+        default:
+            Serial.print("\n Unknown drive mode");
+            break;
     }
-    
-    absimaServo.write(steeringAngle); // Set servo to steering angle
-    absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
-    drawValues(throttleValue, steeringAngle);
-
-  } else if (driveMode == 2){
-    CANBUS canData = getCanData();
-
-    // Access the returned throttleValue and steeringAngle
-    float throttleValue = map(canData.throttleValue, 100, 200, 1000, 2000);
-    float steeringAngle = canData.steeringAngle;
-    
-    // Center steering angle if within tolerance
-    if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
-      steeringAngle = centerSteeringAngle;
-    }
-    
-    absimaServo.write(steeringAngle); // Set servo to steering angle
-    absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
-    drawValues(throttleValue, steeringAngle);
-    //Serial.println(canData.driveMode);
-  }
 }
