@@ -29,7 +29,7 @@ class driver {
     void setup(); // Setup function to initialize the driver
     XBOX getXboxData(); // Function to handle XBOX controller driving
     CANBUS getCanData(); // Function for park assistant feature
-    void driving(int driveMode);
+    void driving(int driveMode, int CANthrottleValue, int CANsteerignAngle);
 
   private: // Private members - constants and variables
     XboxSeriesXControllerESP32_asukiaaa::Core xboxController; // Xbox controller object
@@ -57,6 +57,8 @@ class driver {
 
   public:
     int driveMode;
+    int CANthrottleValue;
+    int CANsteerignAngle;
 };
 
 #endif

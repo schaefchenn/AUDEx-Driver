@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "driver.h"
+
 #include "soc/timer_group_struct.h"
 #include "soc/timer_group_reg.h"
 
@@ -25,29 +26,35 @@ void Task1code(void * pvParameters) {
         CANBUS canData = AUDEx.getCanData();
         currentDriveMode = canData.driveMode;
 
-        Serial.print("\n CAN Data on task 1");
-        Serial.print("\t Mode: ");
-        Serial.print(canData.driveMode);
-        Serial.print("\t Throttle: ");
-        Serial.print(canData.throttleValue);
-        Serial.print("\t Steering: ");
-        Serial.print(canData.steeringAngle);
+        AUDEx.CANsteerignAngle = canData.steeringAngle;
+        AUDEx.CANthrottleValue = canData.throttleValue;
+
+        //Serial.print("\n CAN Data on task 1");
+        //Serial.print("\t Mode: ");
+        //Serial.print(canData.driveMode);
+        //Serial.print("\t Throttle: ");
+        //Serial.print(AUDEx.CANthrottleValue);
+        //Serial.print("\t Steering: ");
+        //Serial.print(AUDEx.CANsteerignAngle);
                            
         switch (currentDriveMode) {
             case 1:
                 if (AUDEx.driveMode == 2) {
-                    // Transition logic from mode 2 to mode 1
+                    // Transition logic from mode 1 to mode 2
                     AUDEx.driveMode = 1;
-                    Serial.println("Mode Switched to XBOX");
+                    Serial.println("\nMode Switched to XBOX");
                 }
                 break;
             case 2:
                 if (AUDEx.driveMode == 1) {
-                    // Transition logic from mode 1 to mode 2
+                    // Transition logic from mode 2 to another mode (if needed)
                     AUDEx.driveMode = 2;
-                    Serial.println("Mode Switched to CAN");
+                    Serial.println("\nMode Switched to CAN");
                 }
+
                 break;
+
+            // Add more cases as needed
             default:
                 break;
         }
@@ -70,7 +77,9 @@ void Task1code(void * pvParameters) {
 
 void Task2code(void * pvParameters) {
     for (;;) {
-        AUDEx.driving(AUDEx.driveMode);
+        AUDEx.driving(AUDEx.driveMode, AUDEx.CANthrottleValue, AUDEx.CANsteerignAngle);
+
+        //Serial.println("looping lets goooooooooooooooo!");
 
         #ifdef LoopCount
             LoopCount2++;

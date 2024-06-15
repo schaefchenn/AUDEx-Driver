@@ -92,7 +92,7 @@ XBOX driver::getXboxData() {
                 flag += 1;
 
                 // Draw XBOX onto the display
-                drawXBOX();
+                //drawXBOX();
             }
             
             // Read and map joystick horizontal value to steering angle
@@ -107,6 +107,8 @@ XBOX driver::getXboxData() {
             return data;
         }
     } else {
+        drawXBOXsearching();
+        //delay(1000);
         // Restart ESP if connection failed multiple times
         if (xboxController.getCountFailedConnection() > 2) {
             ESP.restart();
@@ -153,7 +155,7 @@ CANBUS driver::getCanData() {
     return data;
 }
 
-void driver::driving(int driveMode) {
+void driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
     switch (driveMode) {
         case 1: {
             // Call the getXboxData function
@@ -169,39 +171,37 @@ void driver::driving(int driveMode) {
 
             absimaServo.write(steeringAngle); // Set servo to steering angle
             absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
-            drawValues(throttleValue, steeringAngle);
+            drawXBOXValues(throttleValue, steeringAngle);
 
-            //Serial.print("\n Driving with XBOX");
-            //Serial.print("\t Throttle: ");
-            //Serial.print(throttleValue);
-            //Serial.print("\t Steering: ");
-            //Serial.print(steeringAngle);
+            Serial.print("\n Driving with XBOX");
+            Serial.print("\t Throttle: ");
+            Serial.print(throttleValue);
+            Serial.print("\t Steering: ");
+            Serial.print(steeringAngle);
 
             break;
         }
         case 2: {
-            CANBUS canData = getCanData();
-            
-            // Access the returned throttleValue and steeringAngle
-            uint8_t CANthrottleValue = map(canData.throttleValue, 100, 200, 1000, 2000);
-            uint8_t CANsteeringAngle = canData.steeringAngle;
+           int steeringAngle = CANsteerignAngle;
+           int throttleValue = CANthrottleValue *10;
 
             // Center steering angle if within tolerance
-            if (abs(CANsteeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
-                CANsteeringAngle = centerSteeringAngle;
+            if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
+                steeringAngle = centerSteeringAngle;
             }
 
-            absimaServo.write(CANsteeringAngle); // Set servo to steering angle
-            absimaMotor.writeMicroseconds(CANthrottleValue); // Set motor throttle
-            drawValues(CANthrottleValue, CANsteeringAngle);
 
-            //Serial.print("\n Driving with CAN");
-            //Serial.print("\t Mode: ");
-            //Serial.print(canData.driveMode);
-            //Serial.print("\t Throttle: ");
-            //Serial.print(CANthrottleValue);
-            //Serial.print("\t Steering: ");
-            //Serial.print(CANsteeringAngle);
+            absimaServo.write(steeringAngle); // Set servo to steering angle
+            absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
+            drawCANValues(throttleValue, steeringAngle);
+
+            Serial.print("\n Driving with CAN");
+            Serial.print("\t Mode: ");
+            Serial.print(driveMode);
+            Serial.print("\t Throttle: ");
+            Serial.print(throttleValue);
+            Serial.print("\t Steering: ");
+            Serial.print(steeringAngle);
 
             break;
         }

@@ -336,7 +336,7 @@ void drawXBOX(void) {
   display.display();
 }
 
-void drawValues(int throttleValue, int steeringAngle ) {
+void drawXBOXValues(int throttleValue, int steeringAngle ) {
   display.clearDisplay();
 
   int throttle = map(throttleValue, 1000, 2000, -100, 100);
@@ -355,6 +355,41 @@ void drawValues(int throttleValue, int steeringAngle ) {
   display.setCursor(0,25); 
   display.println(throttleString);
   display.println(steeringString); 
+
+  display.display();
+}
+
+void drawCANValues(int throttleValue, int steeringAngle ) {
+  display.clearDisplay();
+
+  int throttle = map(throttleValue, 1000, 2000, -100, 100);
+  String throttleString = String(throttle);
+  String steeringString = String(steeringAngle); 
+  
+  throttleString = "Throttle: " + throttleString + " %";
+  steeringString = "Steering: " + steeringString + " deg";
+
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(0,0); 
+  display.println(F("CAN"));
+
+  display.setTextSize(1);             // Normal 1:1 pixel scale
+  display.setCursor(0,25); 
+  display.println(throttleString);
+  display.println(steeringString); 
+
+  display.display();
+}
+
+void drawXBOXsearching() {
+  display.clearDisplay();
+
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(0,0); 
+  display.println(F("XBOX"));
+  display.println(F("searching..."));
 
   display.display();
 }
