@@ -12,6 +12,7 @@ unsigned long LastLoopCountTime2 = 0;
 int oldDriveMode = 1;
 int currentDriveMode = 1;
 int flag = 0;
+bool resetEnabled = false;
 
 // Initialize CPU cores
 TaskHandle_t Task1;
@@ -44,16 +45,19 @@ bool notifyDriverReady() {
 void Task1code(void * pvParameters) {
     for (;;) {
         // to enable serial prints for second taks uncomment line below
-        //Serial.println("\n");
+        Serial.print("");
         if (AUDEx.driverReady) {
             if (flag == 0) {
                 // Try notifying until acknowledgment is received
                 while (!notifyDriverReady()) {
+                    AUDEx.CANstatus = 1; // Driver CAN is pinging
                     delay(1000); // Wait 1 second before retrying
                 }
+                AUDEx.CANstatus = 2; // Driver CAN is receiving
+                resetEnabled = true;
                 flag += 1;
             }
-            Serial.print("Driver Ready");
+            //Serial.print("Driver Ready");
 
             CANBUS canData = AUDEx.getCanData();
             currentDriveMode = canData.driveMode;
@@ -111,9 +115,14 @@ void Task1code(void * pvParameters) {
 
 void Task2code(void * pvParameters) {
     for (;;) {
-        AUDEx.driveMode = AUDEx.driving(AUDEx.driveMode, AUDEx.CANthrottleValue, AUDEx.CANsteerignAngle);
-        //Serial.print("\nDrive Mode:");
-        //Serial.print(AUDEx.driveMode);
+        Driver drivingData = AUDEx.driving(AUDEx.driveMode, AUDEx.CANthrottleValue, AUDEx.CANsteerignAngle, AUDEx.CANstatus, AUDEx.CANflag);
+        AUDEx.driveMode = drivingData.driveMode;
+        //flag = drivingData.CANflag;
+        //if(resetEnabled){
+            //flag = drivingData.CANflag;
+        //}
+        Serial.print("\nDrive Mode:");
+        Serial.print(AUDEx.driveMode);
 
         //Serial.println("looping lets goooooooooooooooo!");
 
@@ -138,21 +147,10 @@ void setup() {
     Serial.begin(115200);
 
     // Initializing the two CPU Cores
-    BaseType_t result;
-    result = xTaskCreatePinnedToCore(Task1code, "Task1", 10000, NULL, 1, &Task1, 0);
-    if (result == pdPASS) {
-        Serial.println("Core 1 ready");
-    } else {
-        Serial.println("Core 1 task creation failed");
-    }
+    xTaskCreatePinnedToCore(Task1code, "Task1", 10000, NULL, 1, &Task1, 0);
     delay(500);
 
-    result = xTaskCreatePinnedToCore(Task2code, "Task2", 10000, NULL, 1, &Task2, 1);
-    if (result == pdPASS) {
-        Serial.println("Core 2 ready");
-    } else {
-        Serial.println("Core 2 task creation failed");
-    }
+    xTaskCreatePinnedToCore(Task2code, "Task2", 10000, NULL, 1, &Task2, 1);
     delay(500);
 
     // Call the setup function of the driver instance

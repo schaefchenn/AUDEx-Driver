@@ -131,7 +131,7 @@ XBOX driver::getXboxData() {
         driverReady = false;
         //delay(1000);
         // Restart ESP if connection failed multiple times
-        if (xboxController.getCountFailedConnection() > 3) {
+        if (xboxController.getCountFailedConnection() > 2) {
             ESP.restart();
         }
 
@@ -188,7 +188,11 @@ void driver::sendCanData(int driverReady){
     Serial.print("Send CAN message");
 }
 
-int driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
+Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle, int CANstatus, int CANflag) {
+    Driver drivingData;
+    drivingData.driveMode = driveMode;
+    drivingData.CANflag = CANflag;
+
     switch (driveMode) {
         case 1: {
             // Call the getXboxData function
@@ -207,13 +211,15 @@ int driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
 
                 absimaServo.write(steeringAngle); // Set servo to steering angle
                 absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
-                drawXBOXValues(throttleValue, steeringAngle);
+                drawXBOXValues(throttleValue, steeringAngle, CANstatus);
 
                 absimaServo.write(steeringAngle); // Set servo to steering angle
                 absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
 
-                if (xboxData.buttonSelect == 1){driveMode = 3; delay(debounceDelay); }//delay for debounce
-                return driveMode;
+                // if start button is presset set the CAN to pinging
+                if (xboxData.buttonStart == 1){drivingData.CANflag = 0; delay(debounceDelay); }//delay for debounce
+
+                if (xboxData.buttonSelect == 1){drivingData.driveMode = 3; delay(debounceDelay); }//delay for debounce
             }
 
             //Serial.print("\n Driving with XBOX");
@@ -281,7 +287,8 @@ int driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
                 } else if (throttleValue < 1500 && throttleLimit != 1400){
                     throttleValue = 1500;
                 } else if (throttleLimit == 1400){
-                    if (throttleValue > 1500){
+                    throttleValue = map(throttleValue,1000,2000, 2000, 1000);
+                    if(throttleValue >1500){
                         throttleValue = 1500;
                     }
                 }
@@ -299,17 +306,21 @@ int driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
                 absimaServo.write(steeringAngle); // Set servo to steering angle
                 absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
 
-                if (xboxData.buttonSelect == 1){driveMode = 1; delay(debounceDelay);} //debounce
+                drawXBOXPitLimit(throttleValue, steeringAngle, throttleLimit, CANstatus );
 
-                drawXBOXPitLimit(throttleValue, steeringAngle, throttleLimit );
+                // if start button is presset set the CAN to pinging
+                if (xboxData.buttonStart == 1){drivingData.CANflag = 0; delay(debounceDelay); }//delay for debounce
 
-                Serial.print("\n Driving with XBOX Limiter");
-                Serial.print("\t Throttle: ");
-                Serial.print(throttleValue);
-                Serial.print("\t Throttle Limit: ");
-                Serial.print(throttleLimit);
-                Serial.print("\t Gear: ");
-                Serial.print(gear);
+                if (xboxData.buttonSelect == 1){drivingData.driveMode = 1; throttleLimit=1500; delay(debounceDelay);} //debounce
+
+
+                //Serial.print("\n Driving with XBOX Limiter");
+                //Serial.print("\t Throttle: ");
+                //Serial.print(throttleValue);
+                //Serial.print("\t Throttle Limit: ");
+                //Serial.print(throttleLimit);
+                //Serial.print("\t Gear: ");
+                //Serial.print(gear);
             }
             
             break;
@@ -321,5 +332,5 @@ int driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle) {
             break;
     }
 
-    return driveMode;
+    return drivingData;
 }

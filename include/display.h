@@ -496,12 +496,20 @@ void drawXBOX(void) {
   display.display();
 }
 
-void drawXBOXValues(int throttleValue, int steeringAngle ) {
+void drawXBOXValues(int throttleValue, int steeringAngle, int CANstatus ) {
   display.clearDisplay();
 
   int throttle = map(throttleValue, 1000, 2000, -100, 100);
   String throttleString = String(throttle);
   String steeringString = String(steeringAngle); 
+  String statusString = String(CANstatus);
+
+  if(CANstatus = 1){
+    statusString = "Driver CAN: pinging...";
+  } else if(CANstatus = 2){
+    statusString = "Driver CAN: recieving...";
+  }
+  
   
   throttleString = "Throttle: " + throttleString + " %";
   steeringString = "Steering: " + steeringString + " deg";
@@ -516,12 +524,14 @@ void drawXBOXValues(int throttleValue, int steeringAngle ) {
   display.setTextSize(1.8);             // Normal 1:1 pixel scale
   display.setCursor(0,25); 
   display.println(throttleString);
-  display.println(steeringString); 
+  display.println(steeringString);
+  display.println(" ");
+  display.println(statusString); 
 
   display.display();
 }
 
-void drawXBOXPitLimit(int throttleValue, int steeringAngle, int throttleLimit ) {
+void drawXBOXPitLimit(int throttleValue, int steeringAngle, int throttleLimit, int CANstatus) {
   display.clearDisplay();
 
   int throttle = map(throttleValue, 1000, 2000, -100, 100);
@@ -529,18 +539,28 @@ void drawXBOXPitLimit(int throttleValue, int steeringAngle, int throttleLimit ) 
  
   String throttleString = String(throttle);
   String steeringString = String(steeringAngle);
+  String GearString = String(throttleGear);
+  String statusString = String(CANstatus);
 
+  
   if (throttleGear == 0){
-    String throttleGearString = "N";
+    GearString = "Gear: N";
   } else if (throttleGear == -1){
-    String throttleGearStrin = "R";
+    GearString = "Gear: R";
   }else {
-    String throttleGearString = String(throttleGear);
+    GearString = "Gear: " + GearString;
   }
+
+  if(CANstatus = 1){
+    statusString = "Driver CAN: pinging...";
+  } else if(CANstatus = 2){
+    statusString = "Driver CAN: recieving...";
+  }
+  
   
   throttleString = "Throttle: " + throttleString + " %";
   steeringString = "Steering: " + steeringString + " deg";
-  String throttleGearString = "Gear: " + throttleGearString;
+  //String throttleGearString = "Gear: " + throttleGearString;
 
   display.drawBitmap(0,0, epd_bitmap_xbox_PNG17528_small, 16, 16, WHITE);
 
@@ -550,14 +570,16 @@ void drawXBOXPitLimit(int throttleValue, int steeringAngle, int throttleLimit ) 
   display.println(F("XBOX"));
 
   display.setTextSize(1);
+  display.setCursor(70,8); 
   display.print("Pit Limit");
 
   display.setTextSize(1.8);             // Normal 1:1 pixel scale
   display.setCursor(0,25); 
   display.println(steeringString);
   display.println(throttleString);
-  display.println(throttleGearString);
-
+  display.println(GearString);
+  display.println(" ");
+  display.println(statusString);
   display.display();
 }
 

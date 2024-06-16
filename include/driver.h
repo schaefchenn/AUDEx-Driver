@@ -25,6 +25,13 @@ struct XBOX {
     bool buttonCrossRIGHT;
 };
 
+struct Driver {
+    int driveMode;
+    float throttleValue;
+    float steeringAngle;
+    int CANstatus;
+    int CANflag;
+};
 
 struct CANBUS {
     bool extended;
@@ -51,7 +58,7 @@ class driver {
     XBOX getXboxData(); // Function to handle XBOX controller driving
     CANBUS getCanData(); // Function for park assistant feature
     void sendCanData(int driverReady);
-    int driving(int driveMode, int CANthrottleValue, int CANsteerignAngle);
+    Driver driving(int driveMode, int CANthrottleValue, int CANsteerignAngle, int CANstatus, int CANflag);
     
 
 
@@ -83,7 +90,9 @@ class driver {
     void demoVibration(); // Private function to demonstrate controller vibration
 
   public:
-    int driveMode;
+    int driveMode = 0;
+    int CANstatus;
+    int CANflag;
     int CANthrottleValue;
     int CANsteerignAngle;
 
