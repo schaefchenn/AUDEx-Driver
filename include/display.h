@@ -504,11 +504,11 @@ void drawXBOXValues(int throttleValue, int steeringAngle, int CANstatus ) {
   String steeringString = String(steeringAngle); 
   String statusString = String(CANstatus);
 
-  if(CANstatus = 1){
+  if(CANstatus == 1){
     statusString = "Driver CAN: pinging...";
-  } else if(CANstatus = 2){
+  } else if(CANstatus == 2){
     statusString = "Driver CAN: recieving...";
-  }
+  } 
   
   
   throttleString = "Throttle: " + throttleString + " %";

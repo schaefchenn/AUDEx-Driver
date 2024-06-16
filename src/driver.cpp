@@ -192,6 +192,9 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
     Driver drivingData;
     drivingData.driveMode = driveMode;
     drivingData.CANflag = CANflag;
+    drivingData.CANstatus = CANstatus;
+    //Serial.print("\nButton Start pressed: ");
+    //Serial.print(drivingData.CANflag);
 
     switch (driveMode) {
         case 1: {
@@ -235,7 +238,12 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
             //Serial.print(xboxData.buttonSelect);
             //Serial.print("\t Drive Mode: ");
             //Serial.print(driveMode);
-
+            //Serial.print("\t Button Start pressed: ");
+            //Serial.print(xboxData.buttonStart);
+            //Serial.print("\t CAN flag: ");
+            //Serial.print(drivingData.CANflag);
+            //Serial.print("\t CAN status: ");
+            //Serial.print(drivingData.CANstatus);
 
             break;
         }

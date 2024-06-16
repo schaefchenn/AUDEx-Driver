@@ -91,8 +91,8 @@ class driver {
 
   public:
     int driveMode = 0;
-    int CANstatus;
-    int CANflag;
+    int CANstatus = -1;
+    int CANflag = 1;
     int CANthrottleValue;
     int CANsteerignAngle;
 
