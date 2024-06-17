@@ -496,40 +496,40 @@ void drawXBOX(void) {
   display.display();
 }
 
-void drawXBOXValues(int throttleValue, int steeringAngle, int CANstatus ) {
-  display.clearDisplay();
+void drawXBOXValues(int throttleValue, int steeringAngle, int CANstatus) {
+    display.clearDisplay();
 
-  int throttle = map(throttleValue, 1000, 2000, -100, 100);
-  String throttleString = String(throttle);
-  String steeringString = String(steeringAngle); 
-  String statusString = String(CANstatus);
-
-  if(CANstatus == 1){
-    statusString = "Driver CAN: pinging...";
-  } else if(CANstatus == 2){
-    statusString = "Driver CAN: recieving...";
-  } 
+    int throttle = map(throttleValue, 1000, 2000, -100, 100);
+    String throttleString = String(throttle);
+    String steeringString = String(steeringAngle); 
+    String statusString = "CAN connection unclear";
   
+    if(CANstatus == 1) {
+        statusString = "Driver CAN: pinging";
+    } else if(CANstatus == 2) {
+        statusString = "Driver CAN: receiving";
+    }
   
-  throttleString = "Throttle: " + throttleString + " %";
-  steeringString = "Steering: " + steeringString + " deg";
+    throttleString = "Throttle: " + throttleString + " %";
+    steeringString = "Steering: " + steeringString + " deg";
 
-  display.drawBitmap(0,0, epd_bitmap_xbox_PNG17528_small, 16, 16, WHITE);
+    display.drawBitmap(0, 0, epd_bitmap_xbox_PNG17528_small, 16, 16, WHITE);
 
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);        // Draw white text
-  display.setCursor(20,0); 
-  display.println(F("XBOX"));
+    display.setTextSize(2);
+    display.setTextColor(SSD1306_WHITE);        // Draw white text
+    display.setCursor(20, 0); 
+    display.println(F("XBOX"));
 
-  display.setTextSize(1.8);             // Normal 1:1 pixel scale
-  display.setCursor(0,25); 
-  display.println(throttleString);
-  display.println(steeringString);
-  display.println(" ");
-  display.println(statusString); 
+    display.setTextSize(1.8);             // Normal 1:1 pixel scale
+    display.setCursor(0, 25); 
+    display.println(throttleString);
+    display.println(steeringString);
+    display.setCursor(0,54); 
+    display.println(statusString); 
 
-  display.display();
+    display.display();
 }
+
 
 void drawXBOXPitLimit(int throttleValue, int steeringAngle, int throttleLimit, int CANstatus) {
   display.clearDisplay();
@@ -540,9 +540,8 @@ void drawXBOXPitLimit(int throttleValue, int steeringAngle, int throttleLimit, i
   String throttleString = String(throttle);
   String steeringString = String(steeringAngle);
   String GearString = String(throttleGear);
-  String statusString = String(CANstatus);
+  String statusString = " CAN connection unclear";
 
-  
   if (throttleGear == 0){
     GearString = "Gear: N";
   } else if (throttleGear == -1){
@@ -551,10 +550,10 @@ void drawXBOXPitLimit(int throttleValue, int steeringAngle, int throttleLimit, i
     GearString = "Gear: " + GearString;
   }
 
-  if(CANstatus = 1){
-    statusString = "Driver CAN: pinging...";
-  } else if(CANstatus = 2){
-    statusString = "Driver CAN: recieving...";
+  if(CANstatus == 1){
+    statusString = "Driver CAN: pinging";
+  } else if(CANstatus == 2){
+    statusString = "Driver CAN: recieving";
   }
   
   
@@ -578,7 +577,7 @@ void drawXBOXPitLimit(int throttleValue, int steeringAngle, int throttleLimit, i
   display.println(steeringString);
   display.println(throttleString);
   display.println(GearString);
-  display.println(" ");
+  display.setCursor(0,54); 
   display.println(statusString);
   display.display();
 }

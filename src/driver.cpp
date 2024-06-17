@@ -193,6 +193,7 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
     drivingData.driveMode = driveMode;
     drivingData.CANflag = CANflag;
     drivingData.CANstatus = CANstatus;
+    //Serial.println(drivingData.CANstatus);
     //Serial.print("\nButton Start pressed: ");
     //Serial.print(drivingData.CANflag);
 
