@@ -23,10 +23,12 @@ void driver::setup() {
 
     // Steering Servo setup
     absimaServo.attach(steeringPin);
+    absimaServo.setPeriodHertz(100);
     Serial.println("Steering Ready");
 
     // Motor setup - the Absima motor controller allows the motor to be treated as a servo
     absimaMotor.attach(motorPin);
+    absimaMotor.setPeriodHertz(490);
     absimaMotor.writeMicroseconds(1500); // Neutral position for the motor
     Serial.println("Motor Ready");
 
@@ -42,6 +44,9 @@ void driver::setup() {
         Serial.println ("CAN Ready");
     }
 
+    attachInterrupt(ppmPin, PPM_ISR, RISING);   // isr for measuring ppm signal from radio receiver
+    Serial.println("PPM Receiver ready");
+
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
         Serial.println(F("SSD1306 allocation failed"));
@@ -52,16 +57,44 @@ void driver::setup() {
 
     // Show initial display buffer contents on the screen --
     // the library initializes this with an Adafruit splash screen.
-    display.display();
-    delay(2000); // Pause for 2 seconds
+    // display.display();
+    // delay(2000); // Pause for 2 seconds
     drawPorscheLogo();
-    delay(4000); // Pause for 2 seconds
-    drawCat();
-    delay(4000);
+    delay(2000); // Pause for 2 seconds
+    // drawCat();
+    // delay(4000);
     
     // Clear the buffer
     display.clearDisplay();
     Serial.println("Setup done");
+}
+
+// isr for reading ppm rx signal
+void IRAM_ATTR driver::PPM_ISR(){
+    static portMUX_TYPE _isr_mux = portMUX_INITIALIZER_UNLOCKED;
+    static uint8_t ch_index = 0;
+    static ulong last_us;
+
+    portENTER_CRITICAL_ISR(&_isr_mux);
+    ulong curr_us = micros();
+    ulong ch_width = curr_us - last_us;
+    last_us = curr_us;
+    portEXIT_CRITICAL_ISR(&_isr_mux);
+
+    if(ch_width > 3000 and ch_width < 12000) // sync
+    {
+        ch_index = 0;
+        _ppm_data.available = true;
+        return;
+    }
+    else if(ch_width > 12000)
+    {
+        _ppm_data.available = false; 
+        return;
+    }
+
+    if(ch_index < PPM_MAX_CHANNELS)
+        _ppm_data.channels[ch_index++] = constrain(ch_width, 1000, 2000);
 }
 
 // Function to demonstrate vibration on the XBOX controller
@@ -148,7 +181,6 @@ XBOX driver::getXboxData() {
     }
 }
 
-
 CANBUS driver::getCanData() {
     CANBUS data;  // Create an instance of the struct to hold the return values
     
@@ -188,6 +220,14 @@ void driver::sendCanData(int driverReady){
     Serial.print("Send CAN message");
 }
 
+PPM driver::getPPMData(){
+    PPM data;
+    data.available = _ppm_data.available;
+    for(byte i = 0; i < PPM_MAX_CHANNELS; i++)
+        data.channels[i] = _ppm_data.channels[i];
+    return data;
+}
+
 Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle, int CANstatus, int CANflag) {
     Driver drivingData;
     drivingData.driveMode = driveMode;
@@ -198,7 +238,7 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
     //Serial.print(drivingData.CANflag);
 
     switch (driveMode) {
-        case 1: {
+        case DRIVE_MODE_XBOX: {
             // Call the getXboxData function
             XBOX xboxData = getXboxData();
          
@@ -216,9 +256,6 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
                 absimaServo.write(steeringAngle); // Set servo to steering angle
                 absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
                 drawXBOXValues(throttleValue, steeringAngle, CANstatus);
-
-                absimaServo.write(steeringAngle); // Set servo to steering angle
-                absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
 
                 // if start button is presset set the CAN to pinging
                 if (xboxData.buttonStart == 1){drivingData.CANflag = 0; delay(debounceDelay); }//delay for debounce
@@ -248,7 +285,7 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
 
             break;
         }
-        case 2: {
+        case DRIVE_MODE_CAN: {
            int steeringAngle = CANsteerignAngle;
            int throttleValue = CANthrottleValue *10;
 
@@ -256,7 +293,6 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
             if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
                 steeringAngle = centerSteeringAngle;
             }
-
 
             absimaServo.write(steeringAngle); // Set servo to steering angle
             absimaMotor.writeMicroseconds(throttleValue); // Set motor throttle
@@ -272,7 +308,7 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
 
             break;
         }
-        case 3:{
+        case DRIVE_MODE_XBOX_LIMITED:{
             XBOX xboxData = getXboxData();
             if (xboxData.isConnected){
 
@@ -288,7 +324,6 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
                     delay(debounceDelay); 
                 }
 
-
                 // Access the returned throttleValue and steeringAngle
                 float throttleValue = xboxData.throttleValue;
                 if(throttleValue > throttleLimit && throttleLimit != 1400){
@@ -302,7 +337,6 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
                     }
                 }
                
-                
                 float steeringAngle = xboxData.steeringAngle;
                 // Center steering angle if within tolerance
                 if (abs(steeringAngle - centerSteeringAngle) <= centerSteeringTolerance) {
@@ -331,9 +365,26 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
                 //Serial.print("\t Gear: ");
                 //Serial.print(gear);
             }
+            break;  
+        }
+
+        case DRIVE_MODE_PPM_RX:{
+            PPM ppm_data = getPPMData();
             
+            uint16_t throttle_us = ppm_data.channels[PPM_THROTTLE_CH];
+            uint16_t steering_us = ppm_data.channels[PPM_STEERING_CH];
+            // for(uint8_t i = 0; i < ppm_data.max_channels; i++){
+            //     Serial.print(ppm_data.channels[i]);
+            //     Serial.print('\t');
+            // }
+            // Serial.println();
+
+            absimaMotor.writeMicroseconds(throttle_us); // Set motor throttle
+            absimaServo.writeMicroseconds(steering_us); // Set servo to steering angle
+            
+            if(ppm_data.available)
+                drawPPMValues(throttle_us, steering_us);
             break;
-            
         }
 
         default:

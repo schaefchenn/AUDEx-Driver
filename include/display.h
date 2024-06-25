@@ -605,6 +605,36 @@ void drawCANValues(int throttleValue, int steeringAngle ) {
   display.display();
 }
 
+void drawPPMValues(int throttleValue, int steeringValue ) {
+  display.clearDisplay();
+
+  String throttleString = String(throttleValue);
+  String steeringString = String(steeringValue); 
+  
+  throttleString = "Throttle: " + throttleString + " us";
+  steeringString = "Steering: " + steeringString + " us";
+
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(0,0);
+  display.println(F("PPM RX"));
+
+  display.setTextSize(1);             // Normal 1:1 pixel scale
+  display.setCursor(0,25); 
+  display.println(throttleString);
+  if(throttleValue > 1500)
+    display.fillRect(64, 34, (throttleValue-1500)*64/500, 5, SSD1306_WHITE);
+  else
+    display.fillRect(64+(throttleValue-1500)*64/500, 34, (1500-throttleValue)*64/500, 5, SSD1306_WHITE);
+  display.println();
+  display.println(steeringString);
+  if(steeringValue > 1500)
+    display.fillRect(64, 50, (steeringValue-1500)*64/500, 5, SSD1306_WHITE);
+  else
+    display.fillRect(64+(steeringValue-1500)*64/500, 50, (1500-steeringValue)*64/500, 5, SSD1306_WHITE);
+  display.display();
+}
+
 void drawPorscheLogo(){
   display.clearDisplay();
   display.drawBitmap(0,0, epd_bitmap_Porsche_Logo_500x281, 128, 64, WHITE);

@@ -191,7 +191,7 @@ void setup() {
 
     // Call the setup function of the driver instance
     AUDEx.setup();
-    AUDEx.driveMode = 1; // 1 is for driving with the XBOX Series X Controller
+    AUDEx.driveMode = DRIVE_MODE_PPM_RX;    // default drive mode on reboot
 
     // Delete "setup and loop" task
     vTaskDelete(NULL);

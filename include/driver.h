@@ -49,6 +49,23 @@ struct CanMessage {
   uint8_t driverReady;
 };
 
+#define PPM_THROTTLE_CH 0
+#define PPM_STEERING_CH 1
+#define PPM_MAX_CHANNELS 8
+
+struct PPM {
+  bool available = 0;
+  uint16_t channels[PPM_MAX_CHANNELS] = {1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500};
+};
+static PPM _ppm_data;
+
+enum drive_mode_enum{
+  DRIVE_MODE_XBOX = 1,
+  DRIVE_MODE_CAN,
+  DRIVE_MODE_XBOX_LIMITED,
+  DRIVE_MODE_PPM_RX
+};
+
 // Define the driver class
 class driver {
   public:
@@ -58,6 +75,7 @@ class driver {
     XBOX getXboxData(); // Function to handle XBOX controller driving
     CANBUS getCanData(); // Function for park assistant feature
     void sendCanData(int driverReady);
+    PPM getPPMData(); // get throttle and steering data using ppm receiver
     Driver driving(int driveMode, int CANthrottleValue, int CANsteerignAngle, int CANstatus, int CANflag);
     
 
@@ -68,12 +86,15 @@ class driver {
     Servo absimaServo; // Servo object for steering
     Servo absimaMotor; // Servo object for motor control
 
+    static void PPM_ISR(); // isr for ppm receiver signal
+
     const int TX_GPIO_NUM = 17;  // Connects to CTX
     const int RX_GPIO_NUM = 16;  // Connects to CRX
 
     const int ledPin = 2; // Pin for built-in LED
     const int steeringPin = 25; // Pin for steering servo
     const int motorPin = 26; // Pin for motor servo
+    const int ppmPin = 33;  // radio receiver pin
     const float steeringOffset = 30; // Steering offset to prevent servo damage
     const float centerSteeringAngle = 90; // Center angle for steering (to account for joystick drift)
     const float centerSteeringTolerance = 3; // Tolerance for centering the steering (to account for joystick drift)
@@ -95,7 +116,6 @@ class driver {
     int CANflag = 1;
     int CANthrottleValue;
     int CANsteerignAngle;
-
     int driverReady = 0;
 };
 
