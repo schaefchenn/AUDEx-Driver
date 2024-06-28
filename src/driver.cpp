@@ -221,9 +221,10 @@ CANBUS driver::getCanData() {
     return data;
 }
 
-void driver::sendCanData(int driverReady){
+void driver::sendCanData(int driverReady, float throttleValue){
     CanMessage msg;
     msg.driverReady = driverReady;
+    msg.throttleValue = throttleValue;
 
     CAN.beginPacket(0x11);
     CAN.write((uint8_t*)&msg, sizeof(msg));
@@ -280,6 +281,8 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
                 if (xboxData.buttonStart == 1){drivingData.CANflag = 0; delay(debounceDelay); }//delay for debounce
 
                 if (xboxData.buttonSelect == 1){drivingData.driveMode = 3; delay(debounceDelay); }//delay for debounce
+
+                drivingData.throttleValue = throttleValue;
             }
 
             //Serial.print("\n Driving with XBOX");

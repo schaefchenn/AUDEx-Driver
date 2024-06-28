@@ -17,6 +17,8 @@ SemaphoreHandle_t driveModeMutex;
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 
+float throttleValue;
+
 // Create an instance of the driver class
 driver AUDEx;
 
@@ -26,7 +28,7 @@ driver AUDEx;
 // Function to send driver-ready notification and wait for acknowledgment
 bool notifyDriverReady() {
     // Send driver-ready notification
-    AUDEx.sendCanData(AUDEx.driverReady);
+    AUDEx.sendCanData(AUDEx.driverReady, 150);
 
     // Wait for acknowledgment with a timeout
     unsigned long startTime = millis();
@@ -103,6 +105,9 @@ void CANcommunication(void * pvParameters) {
                 // Give mutex after critical section
                 xSemaphoreGive(driveModeMutex);
 
+                Serial.println(throttleValue/10);
+                AUDEx.sendCanData(1, throttleValue/10);
+
                 // Delay after critical section
                 vTaskDelay(10 / portTICK_PERIOD_MS); // Small delay to yield
             } else {
@@ -119,6 +124,7 @@ void CANcommunication(void * pvParameters) {
 void vehicleControl(void * pvParameters) {
     while (1) {
         Driver drivingData = AUDEx.driving(AUDEx.driveMode, AUDEx.CANthrottleValue, AUDEx.CANsteerignAngle, AUDEx.CANstatus, AUDEx.CANflag);
+        throttleValue = drivingData.throttleValue;
 
         if (xSemaphoreTake(driveModeMutex, portMAX_DELAY) == pdTRUE) {
             // Critical section

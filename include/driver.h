@@ -48,6 +48,7 @@ struct CANBUS {
 
 struct CanMessage {
   uint8_t driverReady;
+  uint8_t throttleValue;
 };
 
 enum rx_mode_enum{
@@ -89,7 +90,7 @@ class driver {
     void setup(); // Setup function to initialize the driver
     XBOX getXboxData(); // Function to handle XBOX controller driving
     CANBUS getCanData(); // Function for park assistant feature
-    void sendCanData(int driverReady);
+    void sendCanData(int driverReady, float throttleValue);
     bool getPPMData(PPMData& data); // get throttle and steering data using ppm receiver
     bool getSbusData(SBUSData& data);
     Driver driving(int driveMode, int CANthrottleValue, int CANsteerignAngle, int CANstatus, int CANflag);
@@ -120,8 +121,7 @@ class driver {
 
     float joyLHoriValue = 65535/2; // Initial value for joystick horizontal position
     float steeringAngle = 90; // Initial steering angle
-    int throttleValue = 0; // Initial throttle value
-    int throttleLimit = 1500;
+    int throttleLimit = 0;
     int gear = 0;
     int debounceDelay = 100;
 
@@ -133,6 +133,7 @@ class driver {
     int CANflag = 1;
     int CANthrottleValue;
     int CANsteerignAngle;
+    int throttleValue = 0; // Initial throttle value
     int driverReady = 0;
 };
 
