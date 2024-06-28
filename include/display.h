@@ -8,7 +8,7 @@
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3D ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 #define NUMFLAKES     10 // Number of snowflakes in the animation example
@@ -605,7 +605,7 @@ void drawCANValues(int throttleValue, int steeringAngle ) {
   display.display();
 }
 
-void drawPPMValues(int throttleValue, int steeringValue ) {
+void drawRXValues(uint16_t throttleValue, uint16_t steeringValue, uint8_t rx_mode) {
   display.clearDisplay();
 
   String throttleString = String(throttleValue);
@@ -617,7 +617,8 @@ void drawPPMValues(int throttleValue, int steeringValue ) {
   display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);        // Draw white text
   display.setCursor(0,0);
-  display.println(F("PPM RX"));
+  if(rx_mode == 0)  display.println(F("PPM RX"));
+  else if(rx_mode == 1) display.println(F("SBUS RX"));
 
   display.setTextSize(1);             // Normal 1:1 pixel scale
   display.setCursor(0,25); 

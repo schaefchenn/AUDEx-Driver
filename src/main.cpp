@@ -171,6 +171,10 @@ void setup() {
     canFlagMutex = xSemaphoreCreateMutex();
     driveModeMutex = xSemaphoreCreateMutex();
 
+    AUDEx.driveMode = DRIVE_MODE_XBOX;    // default drive mode on reboot
+    // Call the setup function of the driver instance
+    AUDEx.setup();
+
     // Start CANcommunication (priority set to 1, 0 is the lowest priority)
     xTaskCreatePinnedToCore(CANcommunication,       // Function to be called
                             "CANcommunication",     // Name of task
@@ -188,10 +192,6 @@ void setup() {
                             3,                      // Increased priority
                             NULL,
                             app_cpu);               // Assign to application core
-
-    // Call the setup function of the driver instance
-    AUDEx.setup();
-    AUDEx.driveMode = DRIVE_MODE_PPM_RX;    // default drive mode on reboot
 
     // Delete "setup and loop" task
     vTaskDelete(NULL);

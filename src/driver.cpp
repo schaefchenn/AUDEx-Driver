@@ -44,11 +44,19 @@ void driver::setup() {
         Serial.println ("CAN Ready");
     }
 
-    attachInterrupt(ppmPin, PPM_ISR, RISING);   // isr for measuring ppm signal from radio receiver
-    Serial.println("PPM Receiver ready");
 
+    if(rxMode == PPM_MODE){
+        attachInterrupt(receiverPin, PPM_ISR, RISING);   // isr for measuring ppm signal from radio receiver
+        Serial.println("PPM Receiver ready");
+    }
+    else if(rxMode == SBUS_MODE){
+        sbusReceiver.begin(receiverPin, 5, true);
+        Serial.println("SBUS Receiver ready");
+    }
+
+    
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-    if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    if(!display.begin(SSD1306_EXTERNALVCC, SCREEN_ADDRESS)) {
         Serial.println(F("SSD1306 allocation failed"));
         for(;;); // Don't proceed, loop forever
     }
@@ -73,28 +81,31 @@ void driver::setup() {
 void IRAM_ATTR driver::PPM_ISR(){
     static portMUX_TYPE _isr_mux = portMUX_INITIALIZER_UNLOCKED;
     static uint8_t ch_index = 0;
-    static ulong last_us;
+    static int64_t last_us;
 
     portENTER_CRITICAL_ISR(&_isr_mux);
-    ulong curr_us = micros();
-    ulong ch_width = curr_us - last_us;
+    int64_t curr_us = esp_timer_get_time();
+    int64_t ch_width = curr_us - last_us;
     last_us = curr_us;
     portEXIT_CRITICAL_ISR(&_isr_mux);
 
     if(ch_width > 3000 and ch_width < 12000) // sync
     {
         ch_index = 0;
-        _ppm_data.available = true;
+        _ppm_data.available = false;
+        if(_ppm_data.failsafe) _ppm_data.failsafe = false;
         return;
     }
-    else if(ch_width > 12000)
-    {
+    else if(ch_width > 12000)   // pulse width to long -> receiver not connected
+    {   
+        _ppm_data.failsafe = true;
         _ppm_data.available = false; 
         return;
     }
 
-    if(ch_index < PPM_MAX_CHANNELS)
+    if(ch_index < RX_MAX_CHANNELS)
         _ppm_data.channels[ch_index++] = constrain(ch_width, 1000, 2000);
+    _ppm_data.available = true;
 }
 
 // Function to demonstrate vibration on the XBOX controller
@@ -114,9 +125,9 @@ XBOX driver::getXboxData() {
     xboxController.onLoop(); // Process controller loop
     XBOX data; // Create an instance of the struct to hold the return values
     if (xboxController.isConnected()) { // Check if controller is connected
-        if (xboxController.isWaitingForFirstNotification()) {
-            Serial.println("waiting for first notification");
-        } else {
+        // if (xboxController.isWaitingForFirstNotification()) {
+        //     Serial.println("waiting for first notification");
+        // } else {
             if (flag == 0) {
                 demoVibration(); // Demonstrate vibration on first connection
                 digitalWrite(LED_BUILTIN, HIGH); // Turn on built-in LED
@@ -157,7 +168,7 @@ XBOX driver::getXboxData() {
             data.isConnected = true;
 
             return data;
-        }
+        // }
     } else {
         drawXBOXsearching();
         data.isConnected = false;
@@ -217,15 +228,23 @@ void driver::sendCanData(int driverReady){
     CAN.beginPacket(0x11);
     CAN.write((uint8_t*)&msg, sizeof(msg));
     CAN.endPacket();
-    Serial.print("Send CAN message");
 }
 
-PPM driver::getPPMData(){
-    PPM data;
-    data.available = _ppm_data.available;
-    for(byte i = 0; i < PPM_MAX_CHANNELS; i++)
+bool driver::getPPMData(PPMData& data){
+    for(byte i = 0; i < RX_MAX_CHANNELS; i++)
         data.channels[i] = _ppm_data.channels[i];
-    return data;
+    return _ppm_data.available;
+}
+
+bool driver::getSbusData(SBUSData& data){
+    if(sbusReceiver.readCal(data.channelsCal, &data.failSafe, &data.lostFrame)){
+        for(byte i = 0; i < RX_MAX_CHANNELS; i++){
+            data.channels[i] = data.channelsCal[i] * 1000 / 2 + 1500;    // convert channel values to 1000 - 2000
+            data.channels[i] = constrain(data.channels[i], 1000, 2000);
+        }
+        return 1;
+    }
+    return 0;
 }
 
 Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle, int CANstatus, int CANflag) {
@@ -354,7 +373,7 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
                 // if start button is presset set the CAN to pinging
                 if (xboxData.buttonStart == 1){drivingData.CANflag = 0; delay(debounceDelay); }//delay for debounce
 
-                if (xboxData.buttonSelect == 1){drivingData.driveMode = 1; throttleLimit=1500; delay(debounceDelay);} //debounce
+                if (xboxData.buttonSelect == 1){drivingData.driveMode = 4; throttleLimit=2000; delay(debounceDelay);} //debounce
 
 
                 //Serial.print("\n Driving with XBOX Limiter");
@@ -368,22 +387,48 @@ Driver driver::driving(int driveMode, int CANthrottleValue, int CANsteerignAngle
             break;  
         }
 
-        case DRIVE_MODE_PPM_RX:{
-            PPM ppm_data = getPPMData();
-            
-            uint16_t throttle_us = ppm_data.channels[PPM_THROTTLE_CH];
-            uint16_t steering_us = ppm_data.channels[PPM_STEERING_CH];
-            // for(uint8_t i = 0; i < ppm_data.max_channels; i++){
-            //     Serial.print(ppm_data.channels[i]);
-            //     Serial.print('\t');
-            // }
-            // Serial.println();
+        case DRIVE_MODE_RADIO_RX:{
+            uint16_t throttle_us = 1500;
+            uint16_t steering_us = 1500;
+            bool data_available;
+            bool failsafe;
 
-            absimaMotor.writeMicroseconds(throttle_us); // Set motor throttle
-            absimaServo.writeMicroseconds(steering_us); // Set servo to steering angle
+            if(rxMode == PPM_MODE){
+                PPMData ppm_data;
+                data_available = getPPMData(ppm_data);
+                failsafe = ppm_data.failsafe;
+                // for(uint8_t i = 0; i < RX_MAX_CHANNELS; i++){
+                //     Serial.print(ppm_data.channels[i]);
+                //     Serial.print('\t');
+                // }
+                // Serial.println();
+                throttle_us = ppm_data.channels[RX_THROTTLE_CH];
+                steering_us = ppm_data.channels[RX_STEERING_CH];
+            }
+            else if(rxMode == SBUS_MODE){
+                SBUSData sbus_data;
+                data_available = getSbusData(sbus_data);
+                failsafe = sbus_data.failSafe;
+                // for(uint8_t i = 0; i < 8; i++){
+                //     Serial.print(sbus_data.channels[i]);
+                //     Serial.print('\t');
+                // }
+                // Serial.println();
+                throttle_us = sbus_data.channels[RX_THROTTLE_CH];
+                steering_us = sbus_data.channels[RX_STEERING_CH];
+            }
+
+            if(data_available){
+                absimaMotor.writeMicroseconds(throttle_us); // Set motor throttle
+                absimaServo.writeMicroseconds(steering_us); // Set servo to steering angle
+                drawRXValues(throttle_us, steering_us, rxMode);
+                // Serial.printf("throttle: %d, steering: %d\n", throttle_us, steering_us);
+            }
+            else if(failsafe) {
+                absimaMotor.writeMicroseconds(1500); // Set motor throttle
+                absimaServo.writeMicroseconds(1500); // Set servo to steering angle
+            }
             
-            if(ppm_data.available)
-                drawPPMValues(throttle_us, steering_us);
             break;
         }
 
